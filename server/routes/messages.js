@@ -4,6 +4,7 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
 const { sendMessageNotification } = require('../config/telegramBot');
+const { MAX_MESSAGE_LENGTH } = require('../config/constants');
 
 // Get conversations (list of users with whom current user has exchanged messages)
 router.get('/conversations', requireAuth, async (req, res) => {
@@ -104,8 +105,8 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Content cannot be empty' });
     }
     
-    if (trimmedContent.length > 5000) {
-      return res.status(400).json({ error: 'Content is too long (max 5000 characters)' });
+    if (trimmedContent.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: `Content is too long (max ${MAX_MESSAGE_LENGTH} characters)` });
     }
     
     const fromUserId = req.session.userId;

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { verifyAuthCode } = require('../config/telegramBot');
+const { MAX_AUTH_ATTEMPTS, AUTH_ATTEMPT_WINDOW } = require('../config/constants');
 
 // Track auth code attempts per IP to prevent brute force
 const authAttempts = new Map();
@@ -10,7 +11,7 @@ const authAttempts = new Map();
 setInterval(() => {
   const now = Date.now();
   for (const [ip, data] of authAttempts.entries()) {
-    if (now - data.timestamp > 15 * 60 * 1000) {
+    if (now - data.timestamp > AUTH_ATTEMPT_WINDOW) {
       authAttempts.delete(ip);
     }
   }
@@ -26,10 +27,10 @@ router.post('/login', async (req, res) => {
     }
     
     // Check for too many failed attempts from this IP
-    const clientIp = req.ip || req.connection.remoteAddress;
+    const clientIp = req.ip || req.socket.remoteAddress;
     const attempts = authAttempts.get(clientIp);
     
-    if (attempts && attempts.count >= 10 && Date.now() - attempts.timestamp < 15 * 60 * 1000) {
+    if (attempts && attempts.count >= MAX_AUTH_ATTEMPTS && Date.now() - attempts.timestamp < AUTH_ATTEMPT_WINDOW) {
       return res.status(429).json({ error: 'Too many failed attempts. Please try again later.' });
     }
     

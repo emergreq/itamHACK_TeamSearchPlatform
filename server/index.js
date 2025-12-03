@@ -63,8 +63,8 @@ const csrfProtection = csrf({ cookie: true });
 // Serve static files with rate limiting
 app.use(express.static(path.join(__dirname, '../public')));
 
-// CSRF token endpoint
-app.get('/api/csrf-token', csrfProtection, (req, res) => {
+// CSRF token endpoint with rate limiting
+app.get('/api/csrf-token', limiter, csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 

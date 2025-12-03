@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const {
+  MAX_NAME_LENGTH,
+  MAX_BIO_LENGTH,
+  MAX_EXPERIENCE_LENGTH,
+  MAX_SKILLS_COUNT,
+  MAX_SKILL_LENGTH,
+  MAX_USERS_PER_PAGE,
+  DEFAULT_USERS_PER_PAGE,
+  VALID_ROLES
+} = require('../config/constants');
 
 // Get user profile
 router.get('/', requireAuth, async (req, res) => {
@@ -43,15 +53,14 @@ router.put('/', requireAuth, async (req, res) => {
     
     // Validate and update profile fields
     if (name !== undefined) {
-      if (typeof name !== 'string' || name.length > 100) {
-        return res.status(400).json({ error: 'Invalid name (max 100 characters)' });
+      if (typeof name !== 'string' || name.length > MAX_NAME_LENGTH) {
+        return res.status(400).json({ error: `Invalid name (max ${MAX_NAME_LENGTH} characters)` });
       }
       user.profile.name = name.trim();
     }
     
     if (role !== undefined) {
-      const validRoles = ['frontend', 'backend', 'fullstack', 'designer', 'project-manager', 'data-scientist', 'mobile', 'other'];
-      if (!validRoles.includes(role)) {
+      if (!VALID_ROLES.includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
       user.profile.role = role;
@@ -61,22 +70,22 @@ router.put('/', requireAuth, async (req, res) => {
       if (!Array.isArray(skills)) {
         return res.status(400).json({ error: 'Skills must be an array' });
       }
-      if (skills.length > 20) {
-        return res.status(400).json({ error: 'Too many skills (max 20)' });
+      if (skills.length > MAX_SKILLS_COUNT) {
+        return res.status(400).json({ error: `Too many skills (max ${MAX_SKILLS_COUNT})` });
       }
-      user.profile.skills = skills.map(s => String(s).trim().substring(0, 50)).filter(s => s.length > 0);
+      user.profile.skills = skills.map(s => String(s).trim().substring(0, MAX_SKILL_LENGTH)).filter(s => s.length > 0);
     }
     
     if (experience !== undefined) {
-      if (typeof experience !== 'string' || experience.length > 1000) {
-        return res.status(400).json({ error: 'Invalid experience (max 1000 characters)' });
+      if (typeof experience !== 'string' || experience.length > MAX_EXPERIENCE_LENGTH) {
+        return res.status(400).json({ error: `Invalid experience (max ${MAX_EXPERIENCE_LENGTH} characters)` });
       }
       user.profile.experience = experience.trim();
     }
     
     if (bio !== undefined) {
-      if (typeof bio !== 'string' || bio.length > 500) {
-        return res.status(400).json({ error: 'Invalid bio (max 500 characters)' });
+      if (typeof bio !== 'string' || bio.length > MAX_BIO_LENGTH) {
+        return res.status(400).json({ error: `Invalid bio (max ${MAX_BIO_LENGTH} characters)` });
       }
       user.profile.bio = bio.trim();
     }
@@ -100,7 +109,7 @@ router.put('/', requireAuth, async (req, res) => {
 // Get all users (for finding teammates)
 router.get('/users', requireAuth, async (req, res) => {
   try {
-    const { lookingForTeam, role, page = 1, limit = 50 } = req.query;
+    const { lookingForTeam, role, page = 1, limit = DEFAULT_USERS_PER_PAGE } = req.query;
     
     const filter = { _id: { $ne: req.session.userId } };
     
@@ -124,7 +133,7 @@ router.get('/users', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid limit' });
     }
     
-    const validatedLimit = Math.min(limitNum, 100); // Max 100 per page
+    const validatedLimit = Math.min(limitNum, MAX_USERS_PER_PAGE);
     
     const users = await User.find(filter)
       .select('username firstName lastName profile')

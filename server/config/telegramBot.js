@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const User = require('../models/User');
+const { AUTH_CODE_EXPIRATION } = require('./constants');
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
@@ -14,10 +15,9 @@ function generateAuthCode() {
 // Clean up expired auth codes periodically
 setInterval(() => {
   const now = Date.now();
-  const expirationTime = 5 * 60 * 1000; // 5 minutes
   
   for (const [code, data] of authCodes.entries()) {
-    if (now - data.timestamp > expirationTime) {
+    if (now - data.timestamp > AUTH_CODE_EXPIRATION) {
       authCodes.delete(code);
     }
   }
@@ -85,8 +85,7 @@ bot.onText(/\/help/, (msg) => {
 // Function to send notification about new message
 async function sendMessageNotification(telegramId, senderName, messagePreview) {
   try {
-    // Sanitize inputs to prevent injection attacks
-    // Telegram uses Markdown/HTML, so we need to escape special characters
+    // Remove potentially dangerous characters that could be interpreted by Telegram
     const sanitizedName = String(senderName)
       .replace(/[<>&"']/g, '')
       .substring(0, 50);
@@ -110,8 +109,8 @@ function verifyAuthCode(code) {
     return null;
   }
   
-  // Check if code is still valid (5 minutes)
-  if (Date.now() - authData.timestamp > 5 * 60 * 1000) {
+  // Check if code is still valid
+  if (Date.now() - authData.timestamp > AUTH_CODE_EXPIRATION) {
     authCodes.delete(code);
     return null;
   }
