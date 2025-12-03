@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackathon Team Search Platform</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav id="navbar" style="display: none;">
+            <div class="nav-container">
+                <div class="nav-brand">🚀 Team Search</div>
+                <div class="nav-menu">
+                    <a href="#" data-page="profile">О себе</a>
+                    <a href="#" data-page="users">Поиск команды</a>
+                    <a href="#" data-page="messages">
+                        Сообщения
+                        <span id="unread-badge" class="badge" style="display: none;"></span>
+                    </a>
+                    <a href="#" id="logout-btn">Выход</a>
+                </div>
+                <div class="user-info">
+                    <span id="username-display"></span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Auth Page -->
+        <div id="auth-page" class="page">
+            <div class="auth-container">
+                <div class="auth-box">
+                    <h1>🚀 Hackathon Team Search</h1>
+                    <p class="subtitle">Платформа для поиска команды на хакатон</p>
+                    
+                    <div class="auth-content">
+                        <h2>Вход через Telegram</h2>
+                        <p>Для входа на платформу:</p>
+                        <ol>
+                            <li>Откройте Telegram и найдите нашего бота</li>
+                            <li>Отправьте команду <code>/start</code></li>
+                            <li>Получите код авторизации</li>
+                            <li>Введите код ниже</li>
+                        </ol>
+                        
+                        <div class="auth-form">
+                            <input type="text" id="auth-code" placeholder="Введите код авторизации" maxlength="8">
+                            <button id="login-btn" class="btn btn-primary">Войти</button>
+                            <div id="auth-error" class="error-message" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile-page" class="page" style="display: none;">
+            <div class="container">
+                <h1>О себе</h1>
+                <div class="profile-form">
+                    <div class="form-group">
+                        <label for="profile-name">Имя</label>
+                        <input type="text" id="profile-name" placeholder="Ваше имя">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profile-role">Роль</label>
+                        <select id="profile-role">
+                            <option value="other">Выберите роль</option>
+                            <option value="frontend">Frontend разработчик</option>
+                            <option value="backend">Backend разработчик</option>
+                            <option value="fullstack">Fullstack разработчик</option>
+                            <option value="designer">Дизайнер</option>
+                            <option value="project-manager">Менеджер проекта</option>
+                            <option value="data-scientist">Data Scientist</option>
+                            <option value="mobile">Mobile разработчик</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profile-skills">Навыки (через запятую)</label>
+                        <input type="text" id="profile-skills" placeholder="JavaScript, React, Node.js, MongoDB">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profile-experience">Опыт</label>
+                        <textarea id="profile-experience" rows="3" placeholder="Расскажите о своем опыте"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profile-bio">О себе</label>
+                        <textarea id="profile-bio" rows="4" placeholder="Расскажите о себе, своих интересах"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="profile-looking">
+                            Ищу команду для участия в хакатоне
+                        </label>
+                    </div>
+                    
+                    <button id="save-profile-btn" class="btn btn-primary">Сохранить</button>
+                    <div id="profile-message" class="success-message" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List Page -->
+        <div id="users-page" class="page" style="display: none;">
+            <div class="container">
+                <h1>Поиск команды</h1>
+                <div class="filters">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filter-looking">
+                        Только те, кто ищет команду
+                    </label>
+                    <select id="filter-role">
+                        <option value="">Все роли</option>
+                        <option value="frontend">Frontend</option>
+                        <option value="backend">Backend</option>
+                        <option value="fullstack">Fullstack</option>
+                        <option value="designer">Дизайнер</option>
+                        <option value="project-manager">Менеджер</option>
+                        <option value="data-scientist">Data Scientist</option>
+                        <option value="mobile">Mobile</option>
+                    </select>
+                    <button id="apply-filters-btn" class="btn btn-secondary">Применить</button>
+                </div>
+                <div id="users-list" class="users-grid"></div>
+            </div>
+        </div>
+
+        <!-- Messages Page -->
+        <div id="messages-page" class="page" style="display: none;">
+            <div class="container">
+                <h1>Сообщения</h1>
+                <div class="messages-container">
+                    <div class="conversations-list">
+                        <h3>Беседы</h3>
+                        <div id="conversations"></div>
+                    </div>
+                    <div class="chat-area">
+                        <div id="no-chat-selected" class="no-chat">
+                            Выберите беседу для просмотра сообщений
+                        </div>
+                        <div id="chat-container" style="display: none;">
+                            <div class="chat-header">
+                                <h3 id="chat-username"></h3>
+                            </div>
+                            <div id="messages-list" class="messages-list"></div>
+                            <div class="message-input">
+                                <input type="text" id="message-content" placeholder="Введите сообщение...">
+                                <button id="send-message-btn" class="btn btn-primary">Отправить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
