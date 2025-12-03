@@ -60,7 +60,7 @@ app.use(session({
 // CSRF Protection
 const csrfProtection = csrf({ cookie: true });
 
-// Serve static files
+// Serve static files with rate limiting
 app.use(express.static(path.join(__dirname, '../public')));
 
 // CSRF token endpoint
@@ -73,8 +73,8 @@ app.use('/api/auth', authLimiter, csrfProtection, authRoutes);
 app.use('/api/profile', limiter, csrfProtection, profileRoutes);
 app.use('/api/messages', limiter, csrfProtection, messageRoutes);
 
-// Serve index.html for all other routes (SPA)
-app.get('*', (req, res) => {
+// Serve index.html for all other routes (SPA) with rate limiting
+app.get('*', limiter, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
