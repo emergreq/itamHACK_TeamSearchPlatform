@@ -2,12 +2,30 @@
 let currentUser = null;
 let currentChatUser = null;
 let messageCheckInterval = null;
+let csrfToken = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-    setupEventListeners();
+    fetchCsrfToken().then(() => {
+        checkAuth();
+        setupEventListeners();
+    });
 });
+
+// Fetch CSRF token
+async function fetchCsrfToken() {
+    try {
+        const response = await fetch('/api/csrf-token', {
+            credentials: 'include'
+        });
+        if (response.ok) {
+            const data = await response.json();
+            csrfToken = data.csrfToken;
+        }
+    } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+    }
+}
 
 // Check if user is authenticated
 async function checkAuth() {
@@ -131,7 +149,10 @@ async function login() {
     try {
         const response = await fetch('/api/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken
+            },
             body: JSON.stringify({ code }),
             credentials: 'include'
         });
@@ -157,6 +178,9 @@ async function logout() {
     try {
         await fetch('/api/auth/logout', {
             method: 'POST',
+            headers: {
+                'CSRF-Token': csrfToken
+            },
             credentials: 'include'
         });
         
@@ -214,7 +238,10 @@ async function saveProfile() {
     try {
         const response = await fetch('/api/profile', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken
+            },
             body: JSON.stringify(profileData),
             credentials: 'include'
         });
@@ -421,7 +448,10 @@ async function sendMessage() {
     try {
         const response = await fetch('/api/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken
+            },
             body: JSON.stringify({
                 to: currentChatUser.id,
                 content
