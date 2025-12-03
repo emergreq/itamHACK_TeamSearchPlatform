@@ -11,6 +11,18 @@ function generateAuthCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 
+// Clean up expired auth codes periodically
+setInterval(() => {
+  const now = Date.now();
+  const expirationTime = 5 * 60 * 1000; // 5 minutes
+  
+  for (const [code, data] of authCodes.entries()) {
+    if (now - data.timestamp > expirationTime) {
+      authCodes.delete(code);
+    }
+  }
+}, 60 * 1000); // Run cleanup every minute
+
 // Bot commands
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -38,9 +50,6 @@ bot.onText(/\/start/, async (msg) => {
       telegramId,
       timestamp: Date.now()
     });
-    
-    // Clean up old codes (older than 5 minutes)
-    setTimeout(() => authCodes.delete(authCode), 5 * 60 * 1000);
     
     const authUrl = `${process.env.APP_URL}/auth?code=${authCode}`;
     
@@ -77,8 +86,13 @@ bot.onText(/\/help/, (msg) => {
 async function sendMessageNotification(telegramId, senderName, messagePreview) {
   try {
     // Sanitize inputs to prevent injection attacks
-    const sanitizedName = String(senderName).replace(/[<>]/g, '');
-    const sanitizedPreview = String(messagePreview).replace(/[<>]/g, '');
+    // Telegram uses Markdown/HTML, so we need to escape special characters
+    const sanitizedName = String(senderName)
+      .replace(/[<>&"']/g, '')
+      .substring(0, 50);
+    const sanitizedPreview = String(messagePreview)
+      .replace(/[<>&"']/g, '')
+      .substring(0, 100);
     
     await bot.sendMessage(telegramId,
       `💬 Новое сообщение от ${sanitizedName}:\n\n"${sanitizedPreview}"\n\n` +

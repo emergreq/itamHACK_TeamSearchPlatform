@@ -3,6 +3,19 @@ const router = express.Router();
 const User = require('../models/User');
 const { verifyAuthCode } = require('../config/telegramBot');
 
+// Track auth code attempts per IP to prevent brute force
+const authAttempts = new Map();
+
+// Clean up old attempts every 15 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of authAttempts.entries()) {
+    if (now - data.timestamp > 15 * 60 * 1000) {
+      authAttempts.delete(ip);
+    }
+  }
+}, 60 * 1000);
+
 // Verify auth code and create session
 router.post('/login', async (req, res) => {
   try {
@@ -12,11 +25,29 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Auth code is required' });
     }
     
+    // Check for too many failed attempts from this IP
+    const clientIp = req.ip || req.connection.remoteAddress;
+    const attempts = authAttempts.get(clientIp);
+    
+    if (attempts && attempts.count >= 10 && Date.now() - attempts.timestamp < 15 * 60 * 1000) {
+      return res.status(429).json({ error: 'Too many failed attempts. Please try again later.' });
+    }
+    
     const telegramId = verifyAuthCode(code);
     
     if (!telegramId) {
+      // Track failed attempt
+      if (attempts) {
+        attempts.count++;
+        attempts.timestamp = Date.now();
+      } else {
+        authAttempts.set(clientIp, { count: 1, timestamp: Date.now() });
+      }
       return res.status(401).json({ error: 'Invalid or expired auth code' });
     }
+    
+    // Clear failed attempts on success
+    authAttempts.delete(clientIp);
     
     const user = await User.findOne({ telegramId });
     

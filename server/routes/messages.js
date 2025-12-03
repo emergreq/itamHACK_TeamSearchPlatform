@@ -93,6 +93,21 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Recipient and content are required' });
     }
     
+    // Validate content
+    if (typeof content !== 'string') {
+      return res.status(400).json({ error: 'Content must be a string' });
+    }
+    
+    const trimmedContent = content.trim();
+    
+    if (trimmedContent.length === 0) {
+      return res.status(400).json({ error: 'Content cannot be empty' });
+    }
+    
+    if (trimmedContent.length > 5000) {
+      return res.status(400).json({ error: 'Content is too long (max 5000 characters)' });
+    }
+    
     const fromUserId = req.session.userId;
     
     // Check if recipient exists
@@ -108,7 +123,7 @@ router.post('/', requireAuth, async (req, res) => {
     const message = new Message({
       from: fromUserId,
       to,
-      content,
+      content: trimmedContent,
       read: false
     });
     
@@ -118,10 +133,15 @@ router.post('/', requireAuth, async (req, res) => {
     await message.populate('from', 'username firstName lastName');
     await message.populate('to', 'username firstName lastName');
     
-    // Send Telegram notification to recipient
-    const senderName = sender.firstName || sender.username;
-    const messagePreview = content.length > 50 ? content.substring(0, 50) + '...' : content;
-    await sendMessageNotification(recipient.telegramId, senderName, messagePreview);
+    // Send Telegram notification to recipient (don't fail if notification fails)
+    try {
+      const senderName = sender.firstName || sender.username;
+      const messagePreview = trimmedContent.length > 50 ? trimmedContent.substring(0, 50) + '...' : trimmedContent;
+      await sendMessageNotification(recipient.telegramId, senderName, messagePreview);
+    } catch (notificationError) {
+      console.error('Failed to send Telegram notification:', notificationError);
+      // Continue - message was saved successfully
+    }
     
     res.json(message);
   } catch (error) {

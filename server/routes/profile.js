@@ -41,13 +41,49 @@ router.put('/', requireAuth, async (req, res) => {
       user.profile = {};
     }
     
-    // Update profile fields
-    if (name !== undefined) user.profile.name = name;
-    if (role !== undefined) user.profile.role = role;
-    if (skills !== undefined) user.profile.skills = skills;
-    if (experience !== undefined) user.profile.experience = experience;
-    if (bio !== undefined) user.profile.bio = bio;
-    if (lookingForTeam !== undefined) user.profile.lookingForTeam = lookingForTeam;
+    // Validate and update profile fields
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.length > 100) {
+        return res.status(400).json({ error: 'Invalid name (max 100 characters)' });
+      }
+      user.profile.name = name.trim();
+    }
+    
+    if (role !== undefined) {
+      const validRoles = ['frontend', 'backend', 'fullstack', 'designer', 'project-manager', 'data-scientist', 'mobile', 'other'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ error: 'Invalid role' });
+      }
+      user.profile.role = role;
+    }
+    
+    if (skills !== undefined) {
+      if (!Array.isArray(skills)) {
+        return res.status(400).json({ error: 'Skills must be an array' });
+      }
+      if (skills.length > 20) {
+        return res.status(400).json({ error: 'Too many skills (max 20)' });
+      }
+      user.profile.skills = skills.map(s => String(s).trim().substring(0, 50)).filter(s => s.length > 0);
+    }
+    
+    if (experience !== undefined) {
+      if (typeof experience !== 'string' || experience.length > 1000) {
+        return res.status(400).json({ error: 'Invalid experience (max 1000 characters)' });
+      }
+      user.profile.experience = experience.trim();
+    }
+    
+    if (bio !== undefined) {
+      if (typeof bio !== 'string' || bio.length > 500) {
+        return res.status(400).json({ error: 'Invalid bio (max 500 characters)' });
+      }
+      user.profile.bio = bio.trim();
+    }
+    
+    if (lookingForTeam !== undefined) {
+      user.profile.lookingForTeam = Boolean(lookingForTeam);
+    }
     
     await user.save();
     
@@ -76,13 +112,24 @@ router.get('/users', requireAuth, async (req, res) => {
       filter['profile.role'] = role;
     }
     
+    // Validate pagination parameters
     const pageNum = parseInt(page, 10);
-    const limitNum = Math.min(parseInt(limit, 10), 100); // Max 100 per page
+    const limitNum = parseInt(limit, 10);
+    
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ error: 'Invalid page number' });
+    }
+    
+    if (isNaN(limitNum) || limitNum < 1) {
+      return res.status(400).json({ error: 'Invalid limit' });
+    }
+    
+    const validatedLimit = Math.min(limitNum, 100); // Max 100 per page
     
     const users = await User.find(filter)
       .select('username firstName lastName profile')
-      .skip((pageNum - 1) * limitNum)
-      .limit(limitNum);
+      .skip((pageNum - 1) * validatedLimit)
+      .limit(validatedLimit);
     
     res.json(users);
   } catch (error) {
