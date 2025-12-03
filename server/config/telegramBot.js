@@ -76,8 +76,12 @@ bot.onText(/\/help/, (msg) => {
 // Function to send notification about new message
 async function sendMessageNotification(telegramId, senderName, messagePreview) {
   try {
+    // Sanitize inputs to prevent injection attacks
+    const sanitizedName = String(senderName).replace(/[<>]/g, '');
+    const sanitizedPreview = String(messagePreview).replace(/[<>]/g, '');
+    
     await bot.sendMessage(telegramId,
-      `💬 Новое сообщение от ${senderName}:\n\n"${messagePreview}"\n\n` +
+      `💬 Новое сообщение от ${sanitizedName}:\n\n"${sanitizedPreview}"\n\n` +
       `Перейдите на платформу, чтобы ответить: ${process.env.APP_URL}/messages`
     );
   } catch (error) {

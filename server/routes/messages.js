@@ -121,7 +121,7 @@ router.post('/', requireAuth, async (req, res) => {
     // Send Telegram notification to recipient
     const senderName = sender.firstName || sender.username;
     const messagePreview = content.length > 50 ? content.substring(0, 50) + '...' : content;
-    sendMessageNotification(recipient.telegramId, senderName, messagePreview);
+    await sendMessageNotification(recipient.telegramId, senderName, messagePreview);
     
     res.json(message);
   } catch (error) {

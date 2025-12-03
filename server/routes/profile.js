@@ -36,6 +36,11 @@ router.put('/', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
+    // Initialize profile if it doesn't exist
+    if (!user.profile) {
+      user.profile = {};
+    }
+    
     // Update profile fields
     if (name !== undefined) user.profile.name = name;
     if (role !== undefined) user.profile.role = role;
@@ -59,7 +64,7 @@ router.put('/', requireAuth, async (req, res) => {
 // Get all users (for finding teammates)
 router.get('/users', requireAuth, async (req, res) => {
   try {
-    const { lookingForTeam, role } = req.query;
+    const { lookingForTeam, role, page = 1, limit = 50 } = req.query;
     
     const filter = { _id: { $ne: req.session.userId } };
     
@@ -71,9 +76,13 @@ router.get('/users', requireAuth, async (req, res) => {
       filter['profile.role'] = role;
     }
     
+    const pageNum = parseInt(page, 10);
+    const limitNum = Math.min(parseInt(limit, 10), 100); // Max 100 per page
+    
     const users = await User.find(filter)
       .select('username firstName lastName profile')
-      .limit(50);
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
     
     res.json(users);
   } catch (error) {

@@ -302,21 +302,43 @@ function displayUsers(users) {
         const profile = user.profile || {};
         const skills = (profile.skills || []).slice(0, 3).join(', ');
         
+        // Escape HTML to prevent XSS
+        const escapedName = escapeHtml(profile.name || user.username);
+        const escapedSkills = escapeHtml(skills);
+        const escapedBio = profile.bio ? escapeHtml(profile.bio.substring(0, 100)) + '...' : '';
+        
         return `
-            <div class="user-card">
-                <h3>${profile.name || user.username}</h3>
+            <div class="user-card" data-user-id="${user._id}" data-user-name="${escapedName}">
+                <h3>${escapedName}</h3>
                 ${profile.role && profile.role !== 'other' ? 
                     `<div class="role">${getRoleText(profile.role)}</div>` : ''}
-                ${skills ? `<div class="skills">Навыки: ${skills}</div>` : ''}
-                ${profile.bio ? `<p>${profile.bio.substring(0, 100)}...</p>` : ''}
+                ${skills ? `<div class="skills">Навыки: ${escapedSkills}</div>` : ''}
+                ${escapedBio ? `<p>${escapedBio}</p>` : ''}
                 ${profile.lookingForTeam ? 
                     '<div class="looking">✓ Ищет команду</div>' : ''}
-                <button class="btn btn-primary" onclick="startChat('${user._id}', '${profile.name || user.username}')">
+                <button class="btn btn-primary message-btn">
                     Написать сообщение
                 </button>
             </div>
         `;
     }).join('');
+    
+    // Add event listeners to message buttons
+    container.querySelectorAll('.message-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.user-card');
+            const userId = card.dataset.userId;
+            const username = card.dataset.userName;
+            startChat(userId, username);
+        });
+    });
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Get role text in Russian
@@ -335,11 +357,11 @@ function getRoleText(role) {
 }
 
 // Start chat with user
-window.startChat = function(userId, username) {
+function startChat(userId, username) {
     currentChatUser = { id: userId, username };
     showPage('messages');
     setTimeout(() => loadMessages(userId), 100);
-};
+}
 
 // Load conversations
 async function loadConversations() {
@@ -366,15 +388,28 @@ function displayConversations(conversations) {
         return;
     }
     
-    container.innerHTML = conversations.map(conv => `
-        <div class="conversation-item" onclick="loadMessages('${conv.userId}')">
-            <div class="name">
-                ${conv.firstName || conv.username}
-                ${conv.unreadCount > 0 ? `<span class="unread">${conv.unreadCount}</span>` : ''}
+    container.innerHTML = conversations.map(conv => {
+        const escapedName = escapeHtml(conv.firstName || conv.username);
+        const escapedPreview = escapeHtml(conv.lastMessage);
+        
+        return `
+            <div class="conversation-item" data-user-id="${conv.userId}">
+                <div class="name">
+                    ${escapedName}
+                    ${conv.unreadCount > 0 ? `<span class="unread">${conv.unreadCount}</span>` : ''}
+                </div>
+                <div class="preview">${escapedPreview}</div>
             </div>
-            <div class="preview">${conv.lastMessage}</div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
+    
+    // Add event listeners to conversation items
+    container.querySelectorAll('.conversation-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const userId = item.dataset.userId;
+            loadMessages(userId);
+        });
+    });
 }
 
 // Load messages with specific user
@@ -425,9 +460,12 @@ function displayMessages(messages) {
             minute: '2-digit'
         });
         
+        // Escape HTML to prevent XSS
+        const escapedContent = escapeHtml(msg.content);
+        
         return `
             <div class="message ${isSent ? 'sent' : 'received'}">
-                <div>${msg.content}</div>
+                <div>${escapedContent}</div>
                 <div class="time">${time}</div>
             </div>
         `;
